@@ -1,0 +1,119 @@
+{% assign variant = product.selected_or_first_available_variant %}
+{% assign shopDomain = shop.permanent_domain %}
+
+<div class="product__accordion accordion" title="product_inventory">
+  <details>
+    <summary>
+      <div class="summary__title">
+        <svg class="icon icon-accordion color-foreground-text" aria-hidden="true" focusable="false" role="presentation" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+          <path d="M6.31104 9.13574C6.31104 8.99767 6.42296 8.88574 6.56104 8.88574H13.7464C13.8844 8.88574 13.9964 8.99767 13.9964 9.13574C13.9964 9.27381 13.8844 9.38574 13.7464 9.38574H6.56104C6.42296 9.38574 6.31104 9.27381 6.31104 9.13574Z"></path>
+          <path d="M9.91038 18.5904L14.9458 9.80988C17.1744 5.9237 14.4213 1.03316 10.004 1.03316C5.61856 1.03316 2.85676 5.85475 5.01217 9.74644L9.91038 18.5904ZM10.004 0C4.84496 0 1.59264 5.67261 4.13039 10.2547L9.34236 19.6651C9.58751 20.1078 10.2108 20.1126 10.4625 19.6737L15.82 10.3316C18.4445 5.75498 15.2016 0 10.004 0Z" fill-rule="evenodd"/>
+          <path d="M12.9997 6.79602C12.9997 8.5559 11.6011 9.98256 9.87597 9.98256C8.1508 9.98256 6.75228 8.5559 6.75228 6.79602C6.75228 5.03615 8.1508 3.60949 9.87597 3.60949C11.6011 3.60949 12.9997 5.03615 12.9997 6.79602ZM9.87597 8.9494C11.0418 8.9494 11.9869 7.9853 11.9869 6.79602C11.9869 5.60675 11.0418 4.64265 9.87597 4.64265C8.71015 4.64265 7.76506 5.60675 7.76506 6.79602C7.76506 7.9853 8.71015 8.9494 9.87597 8.9494Z"/>
+        </svg>
+        <h2 class="h4 accordion__title">
+          Inventory
+        </h2>
+      </div>
+      <svg aria-hidden="true" focusable="false" role="presentation" class="icon icon-caret" viewBox="0 0 10 6">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M9.354.646a.5.5 0 00-.708 0L5 4.293 1.354.646a.5.5 0 00-.708.708l4 4a.5.5 0 00.708 0l4-4a.5.5 0 000-.708z" fill="currentColor" />
+      </svg>
+    </summary>
+    <div class="accordion__content rte" id='inventory-list'></div>
+  </details>
+</div>
+
+<script type="module">
+  import { io } from "https://cdn.socket.io/4.4.1/socket.io.esm.min.js";
+
+  const socket = io("ws://localhost:8081", { transports: ['websocket'] });
+
+  socket.on("connect_error", (err) => {
+    console.log(`connect_error due to ${err.message}`);
+  });
+
+  socket.emit('onProductPage', {
+    shopDomain: {{ shopDomain | json }},
+    variantId: {{ variant.id }}
+  }, (response) => {
+    const inventories = response.inventories;
+
+    for (const location in inventories) {
+      const quantity = inventories[location];
+      const inventoryList = document.getElementById('inventory-list');
+
+      const text = document.createTextNode(`${location}: `);
+      const strong = document.createElement('strong');
+
+      if(quantity <= 0) {
+        strong.innerHTML = `<span style="color:red"> Out of Stock</span>`;
+      } else if(quantity == 1) {
+        strong.innerHTML = `<span style="color:yellow"> Low Stock</span>`;
+      } else if(quantity > 1) {
+        strong.innerHTML = `<span style="color:green"> In Stock</span>`;
+      }
+
+      const li = document.createElement('li');
+      li.append(text);
+      li.append(strong);
+      inventoryList.append(li);
+    }
+  });
+
+  const variantRadio = document.querySelector(`variant-radios`)
+  const variantSelect = document.querySelector(`variant-selects`);
+  const variantPicker = variantRadio || variantSelect;
+
+  variantPicker.addEventListener('change', function(event) {
+    const params = new URLSearchParams(window.location.search)
+    const variantId = params.get('variant');
+
+    console.log('Reloading inventoryy, variant: ', variantId);
+
+    socket.emit('onProductChange', {
+      shopDomain: {{ shopDomain | json }},
+      variantId
+    }, (response) => {
+      const inventories = response.inventories;
+      const inventoryList = document.getElementById('inventory-list');
+      inventoryList.innerHTML = '';
+
+      for (const location in inventories) {
+        const quantity = inventories[location];
+
+        const text = document.createTextNode(`${location}: `);
+        const strong = document.createElement('strong');
+
+        if(quantity <= 0) {
+          strong.innerHTML = `<span style="color:red"> Out of Stock</span>`;
+        } else if(quantity == 1) {
+          strong.innerHTML = `<span style="color:yellow"> Low Stock</span>`;
+        } else if(quantity > 1) {
+          strong.innerHTML = `<span style="color:green"> In Stock</span>`;
+        }
+
+        const li = document.createElement('li');
+        li.append(text);
+        li.append(strong);
+        inventoryList.append(li);
+      }
+    });
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Inventory",
+  "templates": [
+    "product"
+  ],
+  "target": "section",
+  "settings": [
+    {
+      "id": "product",
+      "type": "product",
+      "label": "Product",
+      "autofill": true
+    }
+  ]
+}
+{% endschema %}
