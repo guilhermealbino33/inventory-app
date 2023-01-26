@@ -23,10 +23,10 @@
 </div>
 
 <script type="module">
-  import { io } from "https://cdn.socket.io/4.5.4/socket.io.esm.min.js";
+ import { io } from "https://cdn.socket.io/4.5.4/socket.io.esm.min.js";
 
-  const ws = new WebSocket('ws://localhost:8081')
-  const socket = io(ws, { transports: ['websocket'] });
+  // const ws = new WebSocket('ws://localhost:8081')
+  const socket = io('ws://localhost:8081', { transports: ['websocket'] });
 
   socket.on("connect_error", (err) => {
     console.log(`connect_error due to ${err.message}`);

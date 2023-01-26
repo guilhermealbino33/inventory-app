@@ -1,18 +1,10 @@
-import { Server } from "socket.io";
-
 import getInventoryByVariantId from "../services/getInventoryLevelsByVariantId.service.js";
 import updateVariant from "../services/updateVariant.service.js";
 import ActiveShop from "../models/ActiveShop.js";
 
-export default function connectWebSocket(server, app) {
-  const io = new Server(server, {
-    cors: {
-      origin: "*",
-    },
-  });
-
+export default function connectWebSocket(io) {
   io.on("connection", (socket) => {
-    console.log(`a user connected: ${socket.id}`);
+    console.log(`WEBSOCKET: user connected: ${socket.id}`);
 
     socket.on("onProductPage", async (arg, callback) => {
       const { shopDomain, variantId } = arg;
